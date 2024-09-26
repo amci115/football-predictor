@@ -1,0 +1,48 @@
+# constants
+e = 2.718281828459045
+
+# mathematical functions
+def factorial(n):
+    if n == 0:
+        return 1
+    else:
+        sum = 1
+        for multiplier in range(n,0,-1):
+            sum = sum * multiplier
+        return sum
+
+def ncr(n,r):
+    result = factorial(n) / (factorial(r) * factorial(n-r))
+    return result
+
+gameweek = 6
+games_played = gameweek - 1
+
+class PoissonDistribution:
+    def __init__(self,lambda_value):
+        self.lamda_value = lambda_value
+
+    def ppd(self,x):
+        result = (e ** (-1 * self.lamda_value)) * (self.lamda_value ** (x) / factorial(x))
+        return result
+
+mcfc = PoissonDistribution(13/5)
+newcastle = PoissonDistribution(7/5)
+
+mcfc_probability_list = []
+for goals in range(0,11):
+    mcfc_probability_list.append(mcfc.ppd(goals))
+
+max_value = max(mcfc_probability_list)
+probable_goals = mcfc_probability_list.index(max_value)
+
+print(probable_goals, max_value)
+
+newcastle_probability_list = []
+for goals in range(0,11):
+    newcastle_probability_list.append(newcastle.ppd(goals))
+
+max_value_newcastle = max(newcastle_probability_list)
+probable_goals_newcastle = newcastle_probability_list.index(max_value_newcastle)
+
+print(probable_goals_newcastle, max_value_newcastle)
