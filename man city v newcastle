@@ -1,7 +1,7 @@
-# constants
-e = 2.718281828459045
+import sqlite3
 
-# mathematical functions
+#mathematical functions and constants
+e = 2.718281828459045
 def factorial(n):
     if n == 0:
         return 1
@@ -10,14 +10,6 @@ def factorial(n):
         for multiplier in range(n,0,-1):
             sum = sum * multiplier
         return sum
-
-def ncr(n,r):
-    result = factorial(n) / (factorial(r) * factorial(n-r))
-    return result
-
-gameweek = 6
-games_played = gameweek - 1
-
 class PoissonDistribution:
     def __init__(self,lambda_value):
         self.lamda_value = lambda_value
@@ -26,23 +18,46 @@ class PoissonDistribution:
         result = (e ** (-1 * self.lamda_value)) * (self.lamda_value ** (x) / factorial(x))
         return result
 
-mcfc = PoissonDistribution(13/5)
-newcastle = PoissonDistribution(7/5)
 
-mcfc_probability_list = []
-for goals in range(0,11):
-    mcfc_probability_list.append(mcfc.ppd(goals))
 
-max_value = max(mcfc_probability_list)
-probable_goals = mcfc_probability_list.index(max_value)
+connection = sqlite3.connect('premier_league.db')
+cursor = connection.cursor()
 
-print(probable_goals, max_value)
+gameweek = 6
+cursor.execute(f'SELECT home_team,away_team FROM fixtures WHERE gameweek = ?',(gameweek,))
+teams = cursor.fetchall() #a list of home teams and away teams
 
-newcastle_probability_list = []
-for goals in range(0,11):
-    newcastle_probability_list.append(newcastle.ppd(goals))
 
-max_value_newcastle = max(newcastle_probability_list)
-probable_goals_newcastle = newcastle_probability_list.index(max_value_newcastle)
+for home_team,away_team in teams:
+    #retrieving stats for the home team
+    cursor.execute('SELECT goals_for,games FROM stats WHERE team = ?' ,(home_team,))
+    home_goals,home_games = cursor.fetchone()
+    home_average = int(home_goals) / int(home_games)
 
-print(probable_goals_newcastle, max_value_newcastle)
+    #retrieving stats for the away team
+    # retrieving stats for the home team
+    cursor.execute('SELECT goals_for,games FROM stats WHERE team = ?', (away_team,))
+    away_goals, away_games = cursor.fetchone()
+    away_average = int(away_goals) / int(away_games)
+
+    #establish poisson models for home and away teams
+    home_poisson = PoissonDistribution(home_average)
+    away_poisson = PoissonDistribution(away_average)
+
+    #find out probable scoreline
+    home_goals_probabilities = []
+    away_goals_probabilities = []
+    for possible_goals in range(0,11): #considering goals from 0 to 10
+        home_goals_probabilities.append(home_poisson.ppd(possible_goals))
+        away_goals_probabilities.append(away_poisson.ppd(possible_goals))
+
+    max_value_home_team = max(home_goals_probabilities)
+    max_value_away_team = max(away_goals_probabilities)
+
+
+    #find out the index of the max probability, that will be probable goals
+    probable_goals_home_team = home_goals_probabilities.index(max_value_home_team)
+    probable_goals_away_team = away_goals_probabilities.index(max_value_away_team)
+
+    print(f"Predicted Scoreline for {home_team} vs {away_team}:")
+    print(f"{probable_goals_home_team} - {probable_goals_away_team}")
